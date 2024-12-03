@@ -1,3 +1,4 @@
+from datetime import date
 from dotenv import load_dotenv
 import os
 import pyodbc 
@@ -48,10 +49,14 @@ async def fetch_query_as_json(query, is_procedure=False):
         if is_procedure:
             conn.commit()
             
-        return json.dumps(results)
+        return json.dumps(results, default=DateEncoder)
 
     except pyodbc.Error as e:
         raise Exception(f"Error executing the requested query: {str(e)}")
     finally:
         cursor.close()
         conn.close()
+        
+def DateEncoder(obj):
+    if isinstance(obj, date):
+        return obj.isoformat()
