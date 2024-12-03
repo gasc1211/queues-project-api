@@ -11,4 +11,4 @@ __port__ = int(os.getenv("PORT"))
 
 def dev():
   """ Launched with 'poetry run dev' at root level """
-  uvicorn.run("server.main:app", host=__host__, port=__port__, reload=True)
+  uvicorn.run("queues_project_api.main:app", host=__host__, port=__port__, reload=True)

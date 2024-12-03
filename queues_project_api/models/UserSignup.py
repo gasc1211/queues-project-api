@@ -1,8 +1,7 @@
 import re
 
-from typing import Optional 
 from pydantic import BaseModel, field_validator
-from server.utils.globalf import validate_sql_injection
+from queues_project_api.utils.globalf import validate_sql_injection
 
 class UserSignup(BaseModel):
   

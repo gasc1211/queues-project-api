@@ -1,6 +1,7 @@
-from pydantic import BaseModel, field_validator
-from typing import Optional
 import re
+from pydantic import BaseModel, field_validator
+
+from queues_project_api.utils.globalf import validate_sql_injection
 
 class UserLogin(BaseModel):
     email: str
@@ -30,4 +31,7 @@ class UserLogin(BaseModel):
         if not re.match(r"[^@]+@[^@]+\.[^@]+", value):
             raise ValueError('Invalid email address')
 
+        if validate_sql_injection(value):
+            raise ValueError('Invalid email address')
+        
         return value

@@ -1,6 +1,6 @@
 from dotenv import load_dotenv
 import os
-import pyodbc # type: ignore
+import pyodbc 
 import logging
 import json
 

@@ -3,13 +3,15 @@ import uvicorn
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 
-from server.models.EmailActivation import EmailActivation
-from server.models.UserActivation import UserActivation
-from server.utils.tokens import validate, validate_func
+from queues_project_api.utils.tokens import validate, validate_func
 
-from .models.UserLogin import UserLogin
-from .models.UserSignup import UserSignup
-from .controllers.firebase import activate_user, generate_activation_code, register_user_firebase, login_user_firebase
+from queues_project_api.models.UserLogin import UserLogin
+from queues_project_api.models.UserSignup import UserSignup
+from queues_project_api.controllers.firebase import register_user_firebase, login_user_firebase
+
+from queues_project_api.models.EmailActivation import EmailActivation
+from queues_project_api.models.UserActivation import UserActivation
+from queues_project_api.controllers.verification import activate_user, generate_activation_code, validate_verification_code, expire_user_code
 
 app = FastAPI()
 
@@ -20,11 +22,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-@app.get("/")
-def read_root():
-  return "Hello from FastAPI!"
-
 
 @app.post("/signup")
 async def signup(user: UserSignup):
@@ -43,8 +40,8 @@ async def user(request: Request, response: Response):
     response.headers["Cache-Control"] = "no-cache";
     return {
         "email": request.state.email
-        , "firstname": request.state.firstname
-        , "lastname": request.state.lastname
+        , "first_name": request.state.firstname
+        , "last_name": request.state.lastname
     }
 
 @app.post("/user/{email}/auth_code")
@@ -55,13 +52,19 @@ async def generate_code(request: Request, email: str):
     return await generate_activation_code(e)
 
 @app.put("/user/verification")
-async def verify_auth_code(request, email: str, auth_code: int):
+@validate_func
+@validate_verification_code
+async def verificate_code(request: Request, email: str, auth_code: int):
     """ Verify auth code sent to user through email"""
     user = UserActivation(email=email, auth_code=auth_code)
     return activate_user(user)
+
+@app.put("/user/expire")
+async def expire_code(email: str):
+    return expire_user_code(email)
 
 if __name__=="__main__":
     __host__ = os.getenv("HOST")
     __port__ = int(os.getenv("PORT"))
     
-    uvicorn.run("server.main:app", host=__host__, port=__port__, reload=True)
+    uvicorn.run(".main:app", host=__host__, port=__port__, reload=True)

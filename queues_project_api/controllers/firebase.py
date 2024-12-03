@@ -3,7 +3,6 @@ import requests
 import json
 import logging
 import traceback
-import random
 
 from dotenv import load_dotenv
 from fastapi import HTTPException
@@ -13,13 +12,13 @@ from firebase_admin import credentials, auth as firebase_auth
 
 from azure.storage.queue import QueueClient, BinaryBase64DecodePolicy, BinaryBase64EncodePolicy
 
-from server.models.UserSignup import UserSignup
-from server.models.UserLogin import UserLogin
-from server.models.EmailActivation import EmailActivation
-from server.models.UserActivation import UserActivation
+from queues_project_api.models.UserSignup import UserSignup
+from queues_project_api.models.UserLogin import UserLogin
+from queues_project_api.models.EmailActivation import EmailActivation
+from queues_project_api.models.UserActivation import UserActivation
 
-from server.utils.database import fetch_query_as_json
-from server.utils.tokens import create_jwt_token
+from queues_project_api.utils.database import fetch_query_as_json
+from queues_project_api.utils.tokens import create_jwt_token
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -125,40 +124,3 @@ async def login_user_firebase(user: UserLogin):
             detail=f"Error at user login: {error_detail}"
         )
 
-
-async def generate_activation_code(email: EmailActivation):
-
-    code = random.randint(100000, 999999)
-    query = f"EXEC [acc].[GenerateActivationCode] @email = '{email.email}', @verification_code = {code}"
-    
-    try:
-        result_json = await fetch_query_as_json(query, is_procedure=True)
-        # result = json.loads(result_json)[0]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-    return {
-        "message": "Activation code generated succesfully",
-        "auth_code": code
-    }
-    
-async def activate_user(user: UserActivation):
-
-    query = f" SELECT verification_code FROM acc.users WHERE email='{user.email}'"
-    
-    try: 
-        results_json = await fetch_query_as_json(query)
-        results = json.loads(results_json)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-    if results[0]["verification_code"] == user.auth_code:
-        try: 
-            procedure_query = f"EXEC acc.ActivateAccount @email='{user.email}'"
-            results_json = await fetch_query_as_json(query)
-            results = json.loads(results_json)
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-    
-    pass
