@@ -36,6 +36,8 @@ ENV VIRTUAL_ENV=/app/.venv \
 
 COPY --from=builder ${VIRTUAL_ENV} ${VIRTUAL_ENV}
 
-COPY server ./server
+COPY queues_project_api ./queues_project_api
 
-ENTRYPOINT ["python", "-m", "server.main"]
+COPY firebase-config.json ./firebase-config.json
+
+ENTRYPOINT ["python", "-m", "queues_project_api.main"]
