@@ -3,7 +3,7 @@ from pydantic import BaseModel, field_validator
 
 class UserActivation(BaseModel):
     email: str
-    verification_code: str
+    verification_code: int
 
     @field_validator('email')
     def email_validation(cls, value):
@@ -13,7 +13,7 @@ class UserActivation(BaseModel):
         return value
    
     @field_validator('verification_code')
-    def auth_code_validation(cls, value):
+    def verification_code_validation(cls, value):
         if value < 100000 or value > 999999:
             raise ValueError('Invalid verification code')
         

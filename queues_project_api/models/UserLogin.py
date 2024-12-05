@@ -30,8 +30,5 @@ class UserLogin(BaseModel):
     def email_validation(cls, value):
         if not re.match(r"[^@]+@[^@]+\.[^@]+", value):
             raise ValueError('Invalid email address')
-
-        if validate_sql_injection(value):
-            raise ValueError('Invalid email address')
         
         return value
