@@ -1,3 +1,4 @@
+import logging
 import os
 import jwt
 import pytz
@@ -13,17 +14,22 @@ load_dotenv()
 SECRET_KEY = os.getenv("SECRET_KEY")
 FUNCTION_SECRET_KEY = os.getenv("FUNCTIONAPP_SECRET_KEY")
 
+# Configure console logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Function to create a new JWT Token
-def create_jwt_token(first_name:str, last_name:str, email: str, is_verified: bool):
+def create_jwt_token(created_at: datetime, first_name:str, last_name:str, email: str, is_verified: bool):
     expiration = datetime.now(pytz.timezone('UTC')) + timedelta(hours=1)  # Set expiration datetime to 1hr
     token = jwt.encode(
         {
-            "firstname": first_name,
-            "lastname": last_name,
+            "created_at": created_at,
+            "first_name": first_name,
+            "last_name": last_name,
             "email": email,
             "is_verified": is_verified,
-            "expires": expiration,
-            "issued_at": datetime.now(pytz.timezone('UTC'))
+            "expires": expiration.isoformat(),
+            "issued_at": datetime.now(pytz.timezone('UTC')).isoformat()
         },
         SECRET_KEY,
         algorithm="HS256"
@@ -49,16 +55,18 @@ def validate(func):
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
+            created_at = payload.get("created_at")
             email = payload.get("email")
-            expired = payload.get("exp")
+            expires = payload.get("expires")
             is_verified = payload.get("is_verified")
             first_name = payload.get("first_name")
             last_name = payload.get("last_name")
 
-            if email is None or expired is None or is_verified is None:
+            if email is None or expires is None or is_verified is None:
                 raise HTTPException(status_code=400, detail="Invalid token")
 
-            if datetime.fromtimestamp(expired, tz=pytz.timezone('UTC')) < datetime.now(pytz.timezone('UTC')):
+            if datetime.fromisoformat(expires).replace(tzinfo=pytz.timezone('UTC')) < datetime.now(pytz.timezone('UTC')):
+                logger.info(datetime.fromisoformat(expires).replace(tzinfo=pytz.timezone('UTC')) > datetime.now(pytz.timezone('UTC')))
                 raise HTTPException(status_code=401, detail="Expired token")
 
             if not is_verified:
@@ -66,8 +74,9 @@ def validate(func):
 
             # Inject user data into request
             request.state.email = email
-            request.state.firstname = first_name
-            request.state.lastname = last_name
+            request.state.first_name = first_name
+            request.state.last_name = last_name
+            request.state.created_at = created_at
             
         except PyJWTError:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
@@ -95,12 +104,12 @@ def validate_for_inactive(func):
             payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
 
             email = payload.get("email")
-            expired = payload.get("exp")
+            issued_at = payload.get("issued_at")
 
-            if email is None or expired is None:
+            if email is None or issued_at is None:
                 raise HTTPException(status_code=400, detail="Invalid token")
 
-            if datetime.fromtimestamp(expired, tz=pytz.timezone('UTC')) < datetime.now(pytz.timezone('UTC')):
+            if datetime.fromtimestamp(issued_at, tz=pytz.timezone('UTC')) < datetime.now(pytz.timezone('UTC')):
                 raise HTTPException(status_code=401, detail="Expired token")
 
             # Inyectar el email en el objeto request

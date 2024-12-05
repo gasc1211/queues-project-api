@@ -94,7 +94,7 @@ async def login_user_firebase(user: UserLogin):
                 detail=f"Error authenticating user: {response_data['error']['message']}"
             )
 
-        query = f"""SELECT email, first_name, last_name, is_verified 
+        query = f"""SELECT created_at, email, first_name, last_name, is_verified  
                     FROM acc.users 
                     WHERE email = '{ user.email }'
                     """
@@ -105,6 +105,7 @@ async def login_user_firebase(user: UserLogin):
             return {
                 "message": "User authenticated succesfully",
                 "idToken": create_jwt_token(
+                    result_dict[0]["created_at"],
                     result_dict[0]["first_name"],
                     result_dict[0]["last_name"],
                     user.email,
